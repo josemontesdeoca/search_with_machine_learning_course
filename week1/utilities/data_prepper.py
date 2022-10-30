@@ -212,9 +212,12 @@ class DataPrepper:
                 feature_frames.append(ltr_feats_df)
 
         features_df = None
+        
         if len(feature_frames) > 0:
             features_df = pd.concat(feature_frames)
+        
         print("The following queries produced no results: %s" % no_results)
+        
         return features_df
 
     # Features look like:
@@ -236,21 +239,50 @@ class DataPrepper:
                                                 size=len(query_doc_ids), terms_field=terms_field)
         ##### Step Extract LTR Logged Features:
         # IMPLEMENT_START --
-        print("IMPLEMENT ME: __log_ltr_query_features: Extract log features out of the LTR:EXT response and place in a data frame")
-        # Loop over the hits structure returned by running `log_query` and then extract out the features from the response per query_id and doc id.  Also capture and return all query/doc pairs that didn't return features
+        # Loop over the hits structure returned by running `log_query` and then extract out the features from the response per query_id and doc id.
+        # Also capture and return all query/doc pairs that didn't return features
         # Your structure should look like the data frame below
         feature_results = {}
         feature_results["doc_id"] = []  # capture the doc id so we can join later
         feature_results["query_id"] = []  # ^^^
         feature_results["sku"] = []
-        feature_results["name_match"] = []
-        rng = np.random.default_rng(12345)
-        for doc_id in query_doc_ids:
-            feature_results["doc_id"].append(doc_id)  # capture the doc id so we can join later
-            feature_results["query_id"].append(query_id)
-            feature_results["sku"].append(doc_id)  
-            feature_results["name_match"].append(rng.random())
+
+        no_results["query_id"] = []
+        no_results["query"] = []
+
+        try:
+            log_query_resp = self.opensearch.search(body=log_query, index=self.index_name)
+        except RequestError as re:
+            print("Unable to get feature log query: %s\t%s" % (log_query, re))
+            raise re
+        else:
+            if log_query_resp and log_query_resp['hits']['hits'] and len(log_query_resp['hits']['hits']) > 0:
+                # we have a response with some hits
+                hits = log_query_resp['hits']['hits']
+                # print(hits)
+
+                for (idx, hit) in enumerate(hits):
+                    feature_results["doc_id"].append(hit['_id'])  # capture the doc id so we can join later
+                    feature_results["query_id"].append(query_id)
+                    feature_results["sku"].append(hit['_source']['sku'][0])
+
+                    log_entry_feat = hit['fields']['_ltrlog'][0]['log_entry']
+
+                    for feat in log_entry_feat:
+                        feat_name = feat['name']
+                        feat_value = feat['value'] if 'value' in feat else 0
+                        feature_results.setdefault(feat_name,[]).append(feat_value)
+            else:
+                if log_query_resp and (log_query_resp['hits']['hits'] == None or len(log_query_resp['hits']['hits']) == 0):
+                    print("No results for query: %s" % key)
+                    no_results["query_id"].append(query_id)
+                    no_results["query"].append(key)
+                else:
+                    print(log_query_resp)
+                    print("Invalid response for query %s" % log_query)
+
         frame = pd.DataFrame(feature_results)
+        
         return frame.astype({'doc_id': 'int64', 'query_id': 'int64', 'sku': 'int64'})
         # IMPLEMENT_END
 
