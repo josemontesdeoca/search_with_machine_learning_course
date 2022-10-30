@@ -247,7 +247,6 @@ class DataPrepper:
         feature_results["query_id"] = []  # ^^^
         feature_results["sku"] = []
 
-        no_results["query_id"] = []
         no_results["query"] = []
 
         try:
@@ -274,8 +273,7 @@ class DataPrepper:
                         feature_results.setdefault(feat_name,[]).append(feat_value)
             else:
                 if log_query_resp and (log_query_resp['hits']['hits'] == None or len(log_query_resp['hits']['hits']) == 0):
-                    print("No results for query: %s" % key)
-                    no_results["query_id"].append(query_id)
+                    #print("No results for query: %s" % key)
                     no_results["query"].append(key)
                 else:
                     print(log_query_resp)
