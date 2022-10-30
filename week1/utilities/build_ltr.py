@@ -21,13 +21,14 @@ import xgb_utils as xgbu
 from opensearchpy import OpenSearch
 
 
-
 if __name__ == "__main__":
     host = 'localhost'
     port = 9200
     auth = ('admin', 'admin')  # For testing only. Don't store credentials in code.
     parser = argparse.ArgumentParser(description='Build LTR.')
+    
     # TODO: setup argparse requirements/dependencies to better enforce arguments that require other arguments
+    
     general = parser.add_argument_group("general")
     general.add_argument("-i", '--index', default="bbuy_products",
                          help='The name of the main index to search')
@@ -171,7 +172,6 @@ if __name__ == "__main__":
         verify_certs=False,  # set to true if you have certs
         ssl_assert_hostname=False,
         ssl_show_warn=False,
-
     )
     output_dir = args.output_dir
     if os.path.isdir(output_dir) == False:

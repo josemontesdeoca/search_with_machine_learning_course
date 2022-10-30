@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 
+
 def binary_func(x):
     if x > 0:
         return 1
@@ -37,6 +38,7 @@ def apply_click_model(data_frame, click_model_type="heuristic", downsample=True,
     elif click_model_type == "quantiles": #similar to step, but quantiles
         print("CTR Quantiles click model")
         data_frame["grade"] = pd.qcut((data_frame["clicks"] / (data_frame["num_impressions"] + prior)).fillna(0), quantiles, labels=False) / quantiles
+        #print("Size pre-downsample: %s\nVal Counts: \n%s\n" % (len(data_frame), data_frame['grade'].value_counts()))
         if downsample:
             data_frame = down_sample_continuous(data_frame)
     elif click_model_type == "beta_quantiles": #similar to step, but quantiles
@@ -48,6 +50,7 @@ def apply_click_model(data_frame, click_model_type="heuristic", downsample=True,
     elif click_model_type == "heuristic":
         print("Heuristic click model")
         data_frame["grade"] = (data_frame["clicks"] / (data_frame["num_impressions"] + prior)).fillna(0).apply(lambda x: step(x))
+        #print("Size pre-downsample: %s\nVal Counts: \n%s\n" % (len(data_frame), data_frame['grade'].value_counts()))
         if downsample:
             #print("Size pre-downsample: %s\nVal Counts: %s\n" % (len(data_frame), data_frame['grade'].value_counts()))
             data_frame = down_sample_buckets(data_frame)

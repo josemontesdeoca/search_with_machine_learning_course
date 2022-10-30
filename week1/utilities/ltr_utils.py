@@ -16,6 +16,7 @@ def create_rescore_ltr_query(user_query: str, query_obj, click_prior_query: str,
                 "sltr": {
                     "params": {
                         "keywords": user_query,
+                        "click_prior_query": click_prior_query,
                     },
                     "model": ltr_model_name,
                     "store": ltr_store_name
@@ -98,7 +99,8 @@ def create_feature_log_query(query, doc_ids, click_prior_query, featureset_name,
                             "featureset": featureset_name,
                             "store": ltr_store_name,
                             "params": {
-                                "keywords": query
+                                "keywords": query,
+                                "click_prior_query": click_prior_query,
                             }
                         }
                     }
