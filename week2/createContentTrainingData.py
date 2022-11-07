@@ -5,6 +5,8 @@ from tqdm import tqdm
 import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
+import pandas as pd
+
 
 def transform_name(product_name):
     # IMPLEMENT
@@ -19,7 +21,7 @@ general.add_argument("--input", default=directory,  help="The directory containi
 general.add_argument("--output", default="/workspace/datasets/fasttext/output.fasttext", help="the file to output to")
 general.add_argument("--label", default="id", help="id is default and needed for downsteam use, but name is helpful for debugging")
 
-# IMPLEMENT: Setting min_products removes infrequent categories and makes the classifier's task easier.
+# IMPLEMENTED: Setting min_products removes infrequent categories and makes the classifier's task easier.
 general.add_argument("--min_products", default=0, type=int, help="The minimum number of products per category (default is 0).")
 
 args = parser.parse_args()
@@ -31,7 +33,7 @@ if os.path.isdir(output_dir) == False:
 
 if args.input:
     directory = args.input
-# IMPLEMENT: Track the number of items in each category and only output if above the min
+# IMPLEMENTED: Track the number of items in each category and only output if above the min
 min_products = args.min_products
 names_as_labels = False
 if args.label == 'name':
@@ -41,6 +43,7 @@ def _label_filename(filename):
     tree = ET.parse(filename)
     root = tree.getroot()
     labels = []
+    
     for child in root:
         # Check to make sure category name is valid and not in music or movies
         if (child.find('name') is not None and child.find('name').text is not None and
@@ -54,6 +57,7 @@ def _label_filename(filename):
               else:
                   cat = child.find('categoryPath')[len(child.find('categoryPath')) - 1][0].text
               # Replace newline chars with spaces so fastText doesn't complain
+              
               name = child.find('name').text.replace('\n', ' ')
               labels.append((cat, transform_name(name)))
     return labels
@@ -61,9 +65,26 @@ def _label_filename(filename):
 if __name__ == '__main__':
     files = glob.glob(f'{directory}/*.xml')
     print("Writing results to %s" % output_file)
+
+    labels = []
+
     with multiprocessing.Pool() as p:
         all_labels = tqdm(p.imap(_label_filename, files), total=len(files))
+
+        for label_list in all_labels:
+            for (cat, name) in label_list:
+                labels.append({"cat": cat, "name": name})
+        
+        # Create a DataFrame from the list of labels
+        df = pd.DataFrame(labels)
+        
+        # Group the DataFrame by category, count the number of products in each category
+        # and filter out categories with less than min_products
+        df = df.groupby('cat').filter(lambda x: len(x) >= min_products)
+
         with open(output_file, 'w') as output:
-            for label_list in all_labels:
-                for (cat, name) in label_list:
-                    output.write(f'__label__{cat} {name}\n')
+            # Iterate over DataFrame and write to output file
+            for index, row in df.iterrows():
+                cat = row['cat']
+                name = row['name']
+                output.write(f'__label__{cat} {name}\n')
